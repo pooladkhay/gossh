@@ -23,6 +23,7 @@ If you provide ```-e``` flag with a passphrase when adding a new server, Your pa
 To access a server which it's password is encrypted, again, pass ```-e``` flag and your passphrase after server's name.
 
 List all available servers:
+
 ```$ gossh list```
 
 
