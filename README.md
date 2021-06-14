@@ -25,13 +25,19 @@ To access a server which it's password is encrypted, again, pass ```-e``` flag a
 List all available servers:
 ```$ gossh list```
 
+
 Add a new server:
+
 ```$ gossh add -n [server name[no spaces]] -a [server address] -t [Optional][port [default:22]] -u [user] -p [password] -e [Optional][passphrase to encrypt password with]```
 
+
 Connect to a server:
+
 ```$ gossh connect [server name] -e [Optional][passphrase to decrypt password]```
 
+
 Delete a server (permanently):
+
 ```$ gossh delete [server name]```
 
 ### Backup your data
