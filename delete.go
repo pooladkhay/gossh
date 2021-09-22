@@ -16,7 +16,7 @@ func delete() {
 		os.Exit(0)
 	}
 	if cfg.Section(os.Args[2]).Key("host").String() == "" {
-		fmt.Printf("server \"%s\" not found\n", os.Args[1])
+		fmt.Printf("server \"%s\" not found\n", os.Args[2])
 		os.Exit(0)
 	}
 
