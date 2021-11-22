@@ -1,5 +1,5 @@
 # gossh
-A simple CLI-based SSH Client written entirely in go.
+A ~~simple~~ CLI-based SSH Client written entirely in go.
 
 ## Inspiration
 I was working on this project with lots of microservices and only had the option to login to remote servers with password. I wanted to bring my servers with me on any machine I was working on. One way was to use paid apps like Termius. Since I'm poor, I Decided to write my own simpler version that DEFINITELY gets the job done :)
