@@ -26,8 +26,9 @@ func (c *serverOpts) start() error {
 		Auth: []ssh.AuthMethod{
 			ssh.Password(c.Password),
 		},
-		Timeout:         5 * time.Second,
-		HostKeyCallback: hostKeyCallback(),
+		Timeout:           4 * time.Second,
+		HostKeyCallback:   hostKeyCallback(),
+		HostKeyAlgorithms: []string{ssh.KeyAlgoED25519},
 	}
 
 	fmt.Print("\033[2J")

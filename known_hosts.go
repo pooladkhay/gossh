@@ -52,23 +52,37 @@ func addHostKey(host string, remote net.Addr, pubKey ssh.PublicKey) error {
 func hostKeyCallback() ssh.HostKeyCallback {
 	var keyErr *knownhosts.KeyError
 	return ssh.HostKeyCallback(func(host string, remote net.Addr, pubKey ssh.PublicKey) error {
-		fmt.Print("\033[31m")
 		kh := checkKnownHosts()
 		hErr := kh(host, remote, pubKey)
 		if errors.As(hErr, &keyErr) && len(keyErr.Want) > 0 {
-			fmt.Printf("WARNING: %v is not a key of %s, either a MiTM attack or %s has reconfigured the host pub key.", pubKey, host, host)
+			fmt.Print("\033[31m")
+			fmt.Println("WARNING")
 			fmt.Print("\033[0m")
+			fmt.Printf("'%s' is not a key of '%s'.\nEither a MiTM attack or '%s' has reconfigured the host pub key.\n", strings.Fields(createHostKey(remote, pubKey))[2], host, host)
+			fmt.Println("Please contact your system administrator.")
 			fmt.Println("Exiting...")
 			return keyErr
 		} else if errors.As(hErr, &keyErr) && len(keyErr.Want) == 0 {
-			fmt.Printf(
-				"WARNING: %s is not trusted, adding this key: %s to known_hosts file.",
-				strings.Fields(createHostKey(remote, pubKey))[0],
-				strings.Fields(createHostKey(remote, pubKey))[2],
-			)
+			fmt.Print("\033[31m")
+			fmt.Println("WARNING")
 			fmt.Print("\033[0m")
-			fmt.Println("Now Connecting...")
-			return addHostKey(host, remote, pubKey)
+			fmt.Printf("The authenticity of host '%s' can't be established.\n", host)
+			fmt.Printf("ED25519 key fingerprint is: %s\n", ssh.FingerprintSHA256(pubKey))
+			fmt.Printf("Do you want to continue connecting and permanently add '%s' to 'known_hosts'?\n", host)
+			fmt.Print("[yes/no]: ")
+			var val string
+			for {
+				fmt.Scanln(&val)
+				switch val {
+				case "yes":
+					fmt.Println("Connecting...")
+					return addHostKey(host, remote, pubKey)
+				case "no":
+					return keyErr
+				default:
+					fmt.Print("Please type 'yes' or 'no': ")
+				}
+			}
 		}
 		fmt.Print("\033[0m")
 		return nil

@@ -23,7 +23,7 @@ func connect() {
 		os.Exit(0)
 	}
 	if cfg.Section(os.Args[2]).Key("host").String() == "" {
-		fmt.Printf("\nserver \"%s\" not found\n", os.Args[1])
+		fmt.Printf("\nserver \"%s\" not found\n", os.Args[2])
 		os.Exit(0)
 	}
 
@@ -55,7 +55,7 @@ func connect() {
 	go func() {
 		if err := server.start(); err != nil {
 			fmt.Println(err)
-			os.Exit(1)
+			os.Exit(0)
 		}
 		cancel()
 	}()
