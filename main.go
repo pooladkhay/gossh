@@ -7,6 +7,8 @@ import (
 	"gopkg.in/ini.v1"
 )
 
+const VERSION = "0.1.0"
+
 var cfg *ini.File
 var srvFile = "/usr/local/etc/gossh/servers.ini"
 

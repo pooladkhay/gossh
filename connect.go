@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
@@ -44,16 +45,64 @@ func connect() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
 
-	server := serverOpts{
-		Remote:   getConfig("remote"),
-		Port:     getConfig("port"),
-		User:     getConfig("user"),
-		Password: password,
-		Ctx:      ctx,
+	session := sessionOpts{
+		Remote:                  getConfig("remote"),
+		SSHPort:                 getConfig("port"),
+		User:                    getConfig("user"),
+		Password:                password,
+		Ctx:                     ctx,
+		CtxCancel:               cancel,
+		localPortForwardEnabled: false,
+		portPairsMap:            make(map[string]string),
+	}
+
+	// ["gossh", "connect", "dev-pbx", "-f", "3306:3306,5038:5038,..."]
+	//	 	 0			  1			 2			3			      4
+	if len(os.Args) >= 5 {
+		if os.Args[3] == "-f" {
+			if strings.Contains(os.Args[4], ",") {
+				allPorts := strings.Split(os.Args[4], ",")
+				for _, lrPorts := range allPorts {
+					if strings.Contains(lrPorts, ":") {
+						ports := strings.Split(lrPorts, ":")
+						if len(ports) == 2 {
+							if ports[0] != "" && ports[1] != "" {
+								session.localPortForwardEnabled = true
+								session.portPairsMap[ports[0]] = ports[1]
+							} else {
+								helpErr()
+							}
+						} else {
+							helpErr()
+						}
+					} else {
+						helpErr()
+					}
+				}
+			} else {
+				if strings.Contains(os.Args[4], ":") {
+					ports := strings.Split(os.Args[4], ":")
+					if len(ports) == 2 {
+						if ports[0] != "" && ports[1] != "" {
+							session.localPortForwardEnabled = true
+							session.portPairsMap[ports[0]] = ports[1]
+						} else {
+							helpErr()
+						}
+					} else {
+						helpErr()
+					}
+				} else {
+					helpErr()
+				}
+			}
+		} else {
+			helpErr()
+		}
 	}
 
 	go func() {
-		if err := server.start(); err != nil {
+		if err := session.start(); err != nil {
 			fmt.Println(err)
 			os.Exit(0)
 		}

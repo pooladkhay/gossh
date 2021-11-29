@@ -49,7 +49,7 @@ func resolveDNS(addr string) string {
 }
 
 func add() {
-	srv := new(serverOpts)
+	srv := new(sessionOpts)
 	// parsing server name
 	arg := argAfterFlag(os.Args, "-n")
 	// check if name is unique or not
@@ -68,9 +68,9 @@ func add() {
 
 	// parsing port
 	if !sliceContains(os.Args, "-t") {
-		srv.Port = "22"
+		srv.SSHPort = "22"
 	} else {
-		srv.Port = argAfterFlag(os.Args, "-t")
+		srv.SSHPort = argAfterFlag(os.Args, "-t")
 	}
 
 	// parsing user
@@ -95,7 +95,7 @@ func add() {
 	// save to servers.ini
 	sec.NewKey("host", srv.Host)
 	sec.NewKey("remote", srv.Remote)
-	sec.NewKey("port", srv.Port)
+	sec.NewKey("port", srv.SSHPort)
 	sec.NewKey("user", srv.User)
 
 	err := cfg.SaveTo(srvFile)
@@ -103,6 +103,6 @@ func add() {
 		log.Fatalln("failed to add new server:", err)
 	}
 
-	fmt.Printf("\n-Name: %s\n-Host: %s\n-Port: %s\n-User: %s\n\nSaved successfully.\n", srv.Name, srv.Host, srv.Port, srv.User)
+	fmt.Printf("\n-Name: %s\n-Host: %s\n-Port: %s\n-User: %s\n\nSaved successfully.\n", srv.Name, srv.Host, srv.SSHPort, srv.User)
 	fmt.Printf("\nYou can may now connect using:\n $ gossh connect %s\n", srv.Name)
 }

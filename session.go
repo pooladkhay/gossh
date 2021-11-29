@@ -3,28 +3,34 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
+	"net"
 	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/term"
 )
 
-type serverOpts struct {
-	Name     string
-	Host     string
-	Remote   string
-	Port     string
-	User     string
-	Password string
-	Ctx      context.Context
+type sessionOpts struct {
+	Name                    string
+	Host                    string
+	Remote                  string
+	SSHPort                 string
+	User                    string
+	Password                string
+	Ctx                     context.Context
+	CtxCancel               context.CancelFunc
+	localPortForwardEnabled bool
+	portPairsMap            map[string]string
 }
 
-func (c *serverOpts) start() error {
+func (ss *sessionOpts) start() error {
 	config := &ssh.ClientConfig{
-		User: c.User,
+		User: ss.User,
 		Auth: []ssh.AuthMethod{
-			ssh.Password(c.Password),
+			ssh.Password(ss.Password),
 		},
 		Timeout:           4 * time.Second,
 		HostKeyCallback:   hostKeyCallback(),
@@ -33,23 +39,25 @@ func (c *serverOpts) start() error {
 
 	fmt.Print("\033[2J")
 	fmt.Print("\033[H")
-	fmt.Printf("Conntecting to %s on port %s...\n", c.Remote, c.Port)
+	fmt.Printf("Conntecting to %s on port %s...\n", ss.Remote, ss.SSHPort)
 
-	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", c.Remote, c.Port), config)
+	sshConn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", ss.Remote, ss.SSHPort), config)
 	if err != nil {
-		return fmt.Errorf("cannot connect to %s:%s. %s", c.Remote, c.Port, err)
+		return fmt.Errorf("cannot connect to %s:%s. %s", ss.Remote, ss.SSHPort, err)
 	}
-	defer conn.Close()
+	defer sshConn.Close()
 
-	session, err := conn.NewSession()
+	go ss.startPortForwarding(sshConn)
+
+	session, err := sshConn.NewSession()
 	if err != nil {
 		return fmt.Errorf("cannot open new session: %s", err)
 	}
 	defer session.Close()
 
 	go func() {
-		<-c.Ctx.Done()
-		conn.Close()
+		<-ss.Ctx.Done()
+		sshConn.Close()
 	}()
 
 	fd := int(os.Stdin.Fd())
@@ -94,4 +102,78 @@ func (c *serverOpts) start() error {
 		return fmt.Errorf("ssh failed: %s", err)
 	}
 	return nil
+}
+
+func (ss *sessionOpts) startPortForwarding(sshConn *ssh.Client) {
+	if ss.localPortForwardEnabled {
+		if len(ss.portPairsMap) > 0 {
+			for localPort := range ss.portPairsMap {
+
+				localListener, err := net.Listen("tcp", fmt.Sprintf(":%s", localPort))
+				if err != nil {
+					fmt.Print("\033[95m")
+					fmt.Print("\r\nMessage from local machine:")
+					fmt.Print("\033[0m")
+					fmt.Printf("\r\nfailed to listen on port %s on local machine: %s\r\n", localPort, err.Error())
+					fmt.Print("(Press enter to ignore this message)")
+					continue
+				}
+
+				go func() {
+					for {
+						lps := strings.Split(localListener.Addr().String(), ":")
+						rp := ss.portPairsMap[lps[len(lps)-1]]
+
+						localConn, err := localListener.Accept()
+						if err != nil {
+							fmt.Print("\033[95m")
+							fmt.Print("\r\nMessage from local machine:")
+							fmt.Print("\033[0m")
+							fmt.Printf("\r\nfailed to accept connection on port %s on local machine: %s\r\n", lps[len(lps)-1], err.Error())
+							fmt.Print("(Press enter to ignore this message)")
+							continue
+						}
+
+						remoteConn, err := sshConn.Dial("tcp", fmt.Sprintf("127.0.0.1:%s", rp))
+						if err != nil {
+							fmt.Print("\033[95m")
+							fmt.Print("\r\nMessage from remote machine:")
+							fmt.Print("\033[0m")
+							fmt.Printf("\r\nfailed to dial port %s on remote machine: %s\r\n", rp, err.Error())
+							fmt.Print("(Press enter to ignore this message)")
+							localConn.Close()
+							continue
+						}
+
+						go func(lc, rc net.Conn) {
+							defer rc.Close()
+							defer lc.Close()
+							_, err = io.Copy(rc, lc)
+							if err != nil {
+								fmt.Print("\033[95m")
+								fmt.Print("\r\nMessage from local machine:")
+								fmt.Print("\033[0m")
+								fmt.Printf("\r\nio.Copy failed: %s\r\n", err.Error())
+								fmt.Print("(Press enter to ignore this message)")
+								return
+							}
+						}(localConn, remoteConn)
+						go func(lc, rc net.Conn) {
+							defer rc.Close()
+							defer lc.Close()
+							_, err = io.Copy(lc, rc)
+							if err != nil {
+								fmt.Print("\033[95m")
+								fmt.Print("\r\nMessage from local machine:")
+								fmt.Print("\033[0m")
+								fmt.Printf("\r\nio.Copy failed: %s\r\n", err.Error())
+								fmt.Print("(Press enter to ignore this message)")
+								return
+							}
+						}(localConn, remoteConn)
+					}
+				}()
+			}
+		}
+	}
 }
