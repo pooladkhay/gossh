@@ -7,7 +7,7 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-const VERSION = "0.1.0"
+const VERSION = "0.1.1"
 
 var cfg *ini.File
 var srvFile = "/usr/local/etc/gossh/servers.ini"
@@ -37,7 +37,10 @@ func init() {
 
 	// Load config file. you can backup this file and put it on another machine.
 	// That's actually why I made this CLI App :)
-	iniFile, err := ini.Load(srvFile)
+	iniOpts := ini.LoadOptions{
+		SpaceBeforeInlineComment: true,
+	}
+	iniFile, err := ini.LoadSources(iniOpts, srvFile)
 	if err != nil {
 		log.Fatalf("Failed to read servers.ini file: %v\n", err)
 	}
