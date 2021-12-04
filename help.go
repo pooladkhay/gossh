@@ -23,6 +23,6 @@ $ gossh delete [server name]
 }
 
 func helpErr() {
-	fmt.Println("\nInvalid syntax!\nUse -h or --help for help.")
+	fmt.Println("Invalid syntax!\nUse -h or --help for help.")
 	os.Exit(0)
 }

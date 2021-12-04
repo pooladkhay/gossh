@@ -19,7 +19,7 @@ func sliceContains(s []string, e string) bool {
 
 func argAfterFlag(s []string, flag string) string {
 	if !sliceContains(os.Args, flag) {
-		fmt.Printf("\n%s must be provided\n", flag)
+		fmt.Printf("%s must be provided\n", flag)
 		os.Exit(0)
 	}
 	for k, v := range s {
@@ -54,7 +54,7 @@ func add() {
 	arg := argAfterFlag(os.Args, "-n")
 	// check if name is unique or not
 	if cfg.Section(arg).HasKey("host") {
-		fmt.Println("\n-n [server name[no spaces]] must be unique")
+		fmt.Println("-n [server name[no spaces]] must be unique")
 		os.Exit(0)
 	}
 	srv.Name = arg
@@ -103,6 +103,6 @@ func add() {
 		log.Fatalln("failed to add new server:", err)
 	}
 
-	fmt.Printf("\n-Name: %s\n-Host: %s\n-Port: %s\n-User: %s\n\nSaved successfully.\n", srv.Name, srv.Host, srv.SSHPort, srv.User)
-	fmt.Printf("\nYou can may now connect using:\n $ gossh connect %s\n", srv.Name)
+	fmt.Printf("-Name: %s\n-Host: %s\n-Port: %s\n-User: %s\n\nSaved successfully.\n", srv.Name, srv.Host, srv.SSHPort, srv.User)
+	fmt.Printf("You can may now connect using:\n $ gossh connect %s\n", srv.Name)
 }

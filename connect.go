@@ -16,15 +16,15 @@ func getConfig(value string) string {
 
 func connect() {
 	if len(os.Args) <= 2 {
-		fmt.Println("\nserver name must be provided as second argument")
+		fmt.Println("server name must be provided as second argument")
 		os.Exit(0)
 	}
 	if os.Args[2] == "" {
-		fmt.Println("\nserver name must be provided as second argument")
+		fmt.Println("server name must be provided as second argument")
 		os.Exit(0)
 	}
 	if cfg.Section(os.Args[2]).Key("host").String() == "" {
-		fmt.Printf("\nserver \"%s\" not found\n", os.Args[2])
+		fmt.Printf("server \"%s\" not found\n", os.Args[2])
 		os.Exit(0)
 	}
 
