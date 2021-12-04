@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -13,6 +14,14 @@ import (
 )
 
 func createKnownHosts() {
+	dir := fmt.Sprintf("%s/.ssh", os.Getenv("HOME"))
+	_, err := os.Stat(dir)
+	if os.IsNotExist(err) {
+		errDir := os.MkdirAll(dir, os.ModePerm)
+		if errDir != nil {
+			log.Fatalln(err)
+		}
+	}
 	f, err := os.OpenFile(filepath.Join(os.Getenv("HOME"), ".ssh", "known_hosts"), os.O_CREATE, 0600)
 	if err != nil {
 		fmt.Printf("error creating known_hosts: %s\n", err)
