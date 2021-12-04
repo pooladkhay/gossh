@@ -7,7 +7,7 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-const VERSION = "0.1.1"
+const VERSION = "0.1.2"
 
 var cfg *ini.File
 var srvFile = "/usr/local/etc/gossh/servers.ini"
@@ -18,7 +18,7 @@ func init() {
 	// Create directory "/usr/local/etc/gossh" if not exists
 	_, err := os.Stat(srvDir)
 	if os.IsNotExist(err) {
-		errDir := os.MkdirAll(srvDir, 0755)
+		errDir := os.MkdirAll(srvDir, os.ModePerm)
 		if errDir != nil {
 			log.Fatalln(err)
 		}
