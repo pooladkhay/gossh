@@ -8,37 +8,47 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+
+	"github.com/spf13/cobra"
 )
 
-func getConfig(value string) string {
-	return cfg.Section(os.Args[2]).Key(value).String()
+var cmdConnect = &cobra.Command{
+	Use:                   "connect [server to connect to] [(Oprtional) -l local_port:remote_port]",
+	Example:               "gossh connect server_name\ngossh connect server_name -l 3000:3001\ngossh connect server_name -l 3000:3000,4000:4000,5436:1234 ",
+	Short:                 "Connects to a specific server",
+	Args:                  cobra.MinimumNArgs(1),
+	DisableFlagsInUseLine: true,
+	Run: func(cmd *cobra.Command, args []string) {
+		ports, _ := cmd.Flags().GetString("forward-local")
+		key, _ := cmd.Flags().GetString("key")
+		connect(args[0], ports, key)
+	},
 }
 
-func connect() {
-	if len(os.Args) <= 2 {
-		fmt.Println("server name must be provided as second argument")
-		os.Exit(0)
-	}
-	if os.Args[2] == "" {
-		fmt.Println("server name must be provided as second argument")
-		os.Exit(0)
-	}
-	if cfg.Section(os.Args[2]).Key("host").String() == "" {
-		fmt.Printf("server \"%s\" not found\n", os.Args[2])
+func getConfig(srv, value string) string {
+	return cfg.Section(srv).Key(value).String()
+}
+
+func connect(srv, ports, key string) {
+	if cfg.Section(srv).Key("host").String() == "" {
+		fmt.Printf("server \"%s\" not found\n", srv)
 		os.Exit(0)
 	}
 
 	var password string
 
-	if getConfig("encrypted") == "1" {
-		key := argAfterFlag(os.Args, "-e")
-		p, err := decryptPass([]byte(key), getConfig("password"))
+	if getConfig(srv, "encrypted") == "1" {
+		if key == "" {
+			fmt.Println("Password for this server is encrypted with a key.\nUse 'gossh connect --help' for more information.")
+			os.Exit(0)
+		}
+		p, err := decryptPass([]byte(key), getConfig(srv, "password"))
 		if err != nil {
 			log.Fatalln("Error while dencrypting password:", err)
 		}
 		password = string(p)
 	} else {
-		password = getConfig("password")
+		password = getConfig(srv, "password")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -46,9 +56,9 @@ func connect() {
 	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
 
 	session := sessionOpts{
-		Remote:                  getConfig("remote"),
-		SSHPort:                 getConfig("port"),
-		User:                    getConfig("user"),
+		Remote:                  getConfig(srv, "remote"),
+		SSHPort:                 getConfig(srv, "port"),
+		User:                    getConfig(srv, "user"),
 		Password:                password,
 		Ctx:                     ctx,
 		CtxCancel:               cancel,
@@ -56,48 +66,28 @@ func connect() {
 		portPairsMap:            make(map[string]string),
 	}
 
-	// ["gossh", "connect", "dev-pbx", "-f", "3306:3306,5038:5038,..."]
-	//	 	 0			  1			 2			3			      4
-	if len(os.Args) >= 5 {
-		if os.Args[3] == "-f" {
-			if strings.Contains(os.Args[4], ",") {
-				allPorts := strings.Split(os.Args[4], ",")
-				for _, lrPorts := range allPorts {
-					if strings.Contains(lrPorts, ":") {
-						ports := strings.Split(lrPorts, ":")
-						if len(ports) == 2 {
-							if ports[0] != "" && ports[1] != "" {
-								session.localPortForwardEnabled = true
-								session.portPairsMap[ports[0]] = ports[1]
-							} else {
-								helpErr()
-							}
-						} else {
-							helpErr()
-						}
-					} else {
-						helpErr()
+	if strings.Contains(ports, ",") {
+		allPorts := strings.Split(ports, ",")
+		for _, lrPorts := range allPorts {
+			if strings.Contains(lrPorts, ":") {
+				prts := strings.Split(lrPorts, ":")
+				if len(prts) == 2 {
+					if prts[0] != "" && prts[1] != "" {
+						session.localPortForwardEnabled = true
+						session.portPairsMap[prts[0]] = prts[1]
 					}
-				}
-			} else {
-				if strings.Contains(os.Args[4], ":") {
-					ports := strings.Split(os.Args[4], ":")
-					if len(ports) == 2 {
-						if ports[0] != "" && ports[1] != "" {
-							session.localPortForwardEnabled = true
-							session.portPairsMap[ports[0]] = ports[1]
-						} else {
-							helpErr()
-						}
-					} else {
-						helpErr()
-					}
-				} else {
-					helpErr()
 				}
 			}
-		} else {
-			helpErr()
+		}
+	} else {
+		if strings.Contains(ports, ":") {
+			prts := strings.Split(ports, ":")
+			if len(prts) == 2 {
+				if prts[0] != "" && prts[1] != "" {
+					session.localPortForwardEnabled = true
+					session.portPairsMap[prts[0]] = prts[1]
+				}
+			}
 		}
 	}
 

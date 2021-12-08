@@ -2,7 +2,7 @@
 A ~~simple~~ CLI-based SSH Client written entirely in go.
 
 ## Inspiration
-I was working on this project with lots of microservices and only had the option to login to remote servers with password. I wanted to bring my servers with me on any machine I was working on. One way was to use paid apps like Termius. Since I'm poor, I Decided to write my own ~~simpler~~ version that DEFINITELY gets the job done :)
+I was working on this project with lots of microservices and only had the option to login to remote servers with password. I wanted to bring my servers with me on any machine I was working on. One way was to use paid apps like Termius. Since I'm poor, I Decided to write my own ~~simpler~~ version that DEFINITELY gets the job done!
 
 ## Installation
 1) Clone the repo
@@ -18,28 +18,23 @@ $ chmod 755 /usr/local/bin/gossh
 ```
 
 ## Usage
-You can add your remote servers and connect to them without entering your password everytime.
-If you provide ```-e``` flag with a passphrase when adding a new server, Your password will be encrypted.
-To access a server which it's password is encrypted, again, pass ```-e``` flag and your passphrase after server's name.
+```
+$ gossh [command]
 
-List all available servers:
+Available Commands:
+  add         Adds a new server to the list
+  completion  generate the autocompletion script for the specified shell
+  connect     Connects to a specific server
+  delete      Deletes the specified server from server's list
+  help        Help about any command
+  list        Lists all available servers
 
-```$ gossh list```
+Flags:
+  -h, --help      help for gossh
+  -v, --version   version for gossh
 
-
-Add a new server:
-
-```$ gossh add -n [server name[no spaces]] -a [server address] -t (Optional)[port [default:22]] -u [user] -p [password] -e (Optional)[key to encrypt password with]```
-
-
-Connect to a server:
-
-```$ gossh connect [server name] [-e (Optional)[key to decrypt password]] [-f localPort:remotePort,...]```
-
-
-Delete a server (permanently):
-
-```$ gossh delete [server name]```
+Use "gossh [command] --help" for more information about a command.
+```
 
 ### Backup your data
 Just copy ```servers.ini``` file from ```/usr/local/etc/gossh``` and put it inside the same directory on any machine.

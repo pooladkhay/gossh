@@ -5,37 +5,30 @@ import (
 	"log"
 	"net"
 	"os"
-	"strings"
+
+	"github.com/spf13/cobra"
 )
 
-func sliceContains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
+var cmdAdd = &cobra.Command{
+	Use:                   "add [FLAGS]",
+	Example:               "Without password encryption:\ngossh add -n my-server -a myserver.com -t 7121 -u root -p strong@pass\nWith password encryption:\ngossh add -n my-server -a myserver.com -t 7121 -u root -p strong@pass -k strong@key",
+	Short:                 "Adds a new server to the list",
+	Args:                  cobra.MinimumNArgs(0),
+	DisableFlagsInUseLine: true,
+	Run: func(cmd *cobra.Command, args []string) {
+		name, _ := cmd.Flags().GetString("name")
+		address, _ := cmd.Flags().GetString("address")
+		port, _ := cmd.Flags().GetString("port")
+		user, _ := cmd.Flags().GetString("user")
+		password, _ := cmd.Flags().GetString("password")
+		key, _ := cmd.Flags().GetString("key")
+		if name != "" && address != "" && user != "" && password != "" {
+			add(name, address, port, user, password, key)
+		} else {
+			fmt.Println("All flags except port and key are mandatory and must be provided.\nUse 'gossh add --help' for more information.")
+			os.Exit(0)
 		}
-	}
-	return false
-}
-
-func argAfterFlag(s []string, flag string) string {
-	if !sliceContains(os.Args, flag) {
-		fmt.Printf("%s must be provided\n", flag)
-		os.Exit(0)
-	}
-	for k, v := range s {
-		if flag == v {
-			if len(s) > k+1 {
-				if strings.HasPrefix(s[k+1], "-") {
-					helpErr()
-				}
-				return s[k+1]
-			} else {
-				helpErr()
-			}
-		}
-	}
-	helpErr()
-	return ""
+	},
 }
 
 func resolveDNS(addr string) string {
@@ -48,61 +41,44 @@ func resolveDNS(addr string) string {
 	return ip.String()
 }
 
-func add() {
-	srv := new(sessionOpts)
-	// parsing server name
-	arg := argAfterFlag(os.Args, "-n")
+func add(name, address, port, user, password, key string) {
+	// srv := new(sessionOpts)
 	// check if name is unique or not
-	if cfg.Section(arg).HasKey("host") {
-		fmt.Println("-n [server name[no spaces]] must be unique")
+	if cfg.Section(name).HasKey("host") {
+		fmt.Println("server name must be unique")
 		os.Exit(0)
 	}
-	srv.Name = arg
 
 	// create a section in config file
-	sec, _ := cfg.NewSection(srv.Name)
-
-	// parsing address
-	srv.Remote = resolveDNS(argAfterFlag(os.Args, "-a"))
-	srv.Host = argAfterFlag(os.Args, "-a")
-
-	// parsing port
-	if !sliceContains(os.Args, "-t") {
-		srv.SSHPort = "22"
-	} else {
-		srv.SSHPort = argAfterFlag(os.Args, "-t")
-	}
-
-	// parsing user
-	srv.User = argAfterFlag(os.Args, "-u")
+	sec, _ := cfg.NewSection(name)
 
 	// parsing password
-	if sliceContains(os.Args, "-e") {
-		rawPass := argAfterFlag(os.Args, "-p")
-		key := argAfterFlag(os.Args, "-e")
-		p, err := encryptPass([]byte(key), rawPass)
+	if key != "" {
+		p, err := encryptPass([]byte(key), password)
 		if err != nil {
 			log.Fatalln("Error while encrypting password:", err)
 		}
 		sec.NewKey("password", string(p))
 		sec.NewKey("encrypted", "1")
 	} else {
-		srv.Password = argAfterFlag(os.Args, "-p")
-		sec.NewKey("password", srv.Password)
+		sec.NewKey("password", password)
 		sec.NewKey("encrypted", "0")
 	}
 
 	// save to servers.ini
-	sec.NewKey("host", srv.Host)
-	sec.NewKey("remote", srv.Remote)
-	sec.NewKey("port", srv.SSHPort)
-	sec.NewKey("user", srv.User)
+	sec.NewKey("host", address)
+	sec.NewKey("remote", resolveDNS(address))
+	sec.NewKey("port", port)
+	sec.NewKey("user", user)
 
 	err := cfg.SaveTo(srvFile)
 	if err != nil {
 		log.Fatalln("failed to add new server:", err)
 	}
-
-	fmt.Printf("-Name: %s\n-Host: %s\n-Port: %s\n-User: %s\n\nSaved successfully.\n", srv.Name, srv.Host, srv.SSHPort, srv.User)
-	fmt.Printf("You can may now connect using:\n $ gossh connect %s\n", srv.Name)
+	fmt.Printf("Name: %s\nHost: %s\nPort: %s\nUser: %s\nSaved successfully.\n", name, address, port, user)
+	if key == "" {
+		fmt.Printf("You can may now connect using:\n $ gossh connect %s\n", name)
+	} else {
+		fmt.Printf("You can may now connect using:\n $ gossh connect %s -k [key]\n", name)
+	}
 }

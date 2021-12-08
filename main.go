@@ -4,10 +4,11 @@ import (
 	"log"
 	"os"
 
+	"github.com/spf13/cobra"
 	"gopkg.in/ini.v1"
 )
 
-const VERSION = "0.1.2"
+const VERSION = "0.2.0"
 
 var cfg *ini.File
 var srvFile = "/usr/local/etc/gossh/servers.ini"
@@ -48,22 +49,17 @@ func init() {
 }
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] != "" {
-		switch os.Args[1] {
-		case "list":
-			list()
-		case "add":
-			add()
-		case "connect":
-			connect()
-		case "delete":
-			delete()
-		case "-h", "--help":
-			help()
-		default:
-			helpErr()
-		}
-	} else {
-		helpErr()
-	}
+	cmdConnect.PersistentFlags().StringP("forward-local", "l", "", "enable local port forwarding")
+	cmdConnect.PersistentFlags().StringP("key", "k", "", "key to dencrypt password with (only if encrypted while adding)")
+
+	cmdAdd.PersistentFlags().StringP("name", "n", "", "server's name")
+	cmdAdd.PersistentFlags().StringP("address", "a", "", "server's address url")
+	cmdAdd.PersistentFlags().StringP("port", "t", "22", "server's ssh port (optional)")
+	cmdAdd.PersistentFlags().StringP("user", "u", "", "username")
+	cmdAdd.PersistentFlags().StringP("password", "p", "", "password")
+	cmdAdd.PersistentFlags().StringP("key", "k", "", "key to encrypt password with (optional)")
+
+	var rootCmd = &cobra.Command{Use: "gossh", Version: VERSION}
+	rootCmd.AddCommand(cmdConnect, cmdList, cmdDelete, cmdAdd)
+	rootCmd.Execute()
 }
