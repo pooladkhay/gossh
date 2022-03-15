@@ -71,7 +71,7 @@ func add(name, address, port, user, password, key string) {
 	sec.NewKey("port", port)
 	sec.NewKey("user", user)
 
-	err := cfg.SaveTo(srvFile)
+	err := cfg.SaveTo(cfgFileAddr)
 	if err != nil {
 		log.Fatalln("failed to add new server:", err)
 	}

@@ -26,7 +26,7 @@ func delete(srv string) {
 	}
 
 	cfg.DeleteSection(srv)
-	err := cfg.SaveTo(srvFile)
+	err := cfg.SaveTo(cfgFileAddr)
 	if err != nil {
 		log.Fatalln("failed to delete the server:", err)
 	}

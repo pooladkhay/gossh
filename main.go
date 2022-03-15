@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -10,25 +11,33 @@ import (
 
 const VERSION = "0.2.0"
 
-var cfg *ini.File
-var srvFile = "/usr/local/etc/gossh/servers.ini"
+var (
+	cfg         *ini.File
+	cfgFileAddr string
+)
 
 func init() {
-	srvDir := "/usr/local/etc/gossh"
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatalln(err)
+	}
 
-	// Create directory "/usr/local/etc/gossh" if not exists
-	_, err := os.Stat(srvDir)
+	cfgDir := fmt.Sprintf("%s/.gossh", homeDir)
+	cfgFileAddr = fmt.Sprintf("%s/.gossh/servers.ini", homeDir)
+
+	// Create directory "$HOME/.gossh" if not exists
+	_, err = os.Stat(cfgDir)
 	if os.IsNotExist(err) {
-		errDir := os.MkdirAll(srvDir, os.ModePerm)
-		if errDir != nil {
+		err := os.MkdirAll(cfgDir, os.ModePerm)
+		if err != nil {
 			log.Fatalln(err)
 		}
 	}
 
-	// Create file "/usr/local/etc/gossh/servers.ini" if not exists
-	_, err = os.Stat(srvFile)
+	// Create file "$HOME/.gossh/servers.ini" if not exists
+	_, err = os.Stat(cfgFileAddr)
 	if os.IsNotExist(err) {
-		iniFile, err := os.Create(srvFile)
+		iniFile, err := os.Create(cfgFileAddr)
 		if err != nil {
 			log.Fatalf("Failed to create server.ini file: %s\n", err)
 		}
@@ -41,7 +50,7 @@ func init() {
 	iniOpts := ini.LoadOptions{
 		SpaceBeforeInlineComment: true,
 	}
-	iniFile, err := ini.LoadSources(iniOpts, srvFile)
+	iniFile, err := ini.LoadSources(iniOpts, cfgFileAddr)
 	if err != nil {
 		log.Fatalf("Failed to read servers.ini file: %v\n", err)
 	}
