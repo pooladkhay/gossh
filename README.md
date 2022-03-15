@@ -37,7 +37,7 @@ Use "gossh [command] --help" for more information about a command.
 ```
 
 ### Backup your data
-Just copy ```servers.ini``` file from ```/usr/local/etc/gossh``` and put it inside the same directory on any machine.
+Just copy ```servers.ini``` file from ```~/.gossh``` and put it inside the same directory on any machine.
 If you've encrypted your passwords (Explained in Usage section), make sure not to forget your passphrase and you will be good to go.
 Simple, Right? :)
 
